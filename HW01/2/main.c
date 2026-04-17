@@ -7,6 +7,11 @@
 //#define PK_LFH_SIGNATURE  (0x04034b50)
 //#define PK_CDFH_SIGNATURE (0x02014b50)
 
+/* Структуры данных, по описанию:
+   https://users.cs.jmu.edu/buchhofp/forensics/formats/pkzip-printable.html
+   Элементы переменной длины (имя, ...) не включены в структуры
+ */
+
 #pragma pack(push, 1)
 typedef struct _LFH { // Local File Header (Без полей переменной длины)
 //uint32_t  Signature;
@@ -119,6 +124,7 @@ int check_file( char *filename )
 
   unsigned char  *ptr;    // начальная граница файла
   unsigned char  *ptr_up; // граница файла, до которой выполняется поиск сигнатур (P K 0x3 0x4 или P K 0x1 0x2)
+
 #if (1) // код извлечения ZIP-архива в отдельный файл
   // Извлечение данных через LOCAL FILE HEADERS
   // начало файла
