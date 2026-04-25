@@ -37,7 +37,7 @@ static size_t write_cb(char *contents, size_t size, size_t nmemb, void *userp)
   mem->memory = ptr;
   memcpy(&(mem->memory[mem->size]), contents, realsize);
   mem->size += realsize;
-  mem->memory[mem->size] = 0;
+  mem->memory[mem->size] = '\0';
 
   return realsize;
 }
@@ -74,7 +74,7 @@ void print_wind_dir( char *dir )
 
 int main(int argc, char **argv)
 {
-  CURL *curl;
+  CURL *curl = NULL;
   CURLcode result;
 
   struct MemoryStruct chunk;
@@ -82,7 +82,9 @@ int main(int argc, char **argv)
 
   if( argc < 2 )
   {
-    fprintf( stderr, "Использование: %s <Город>\n", argv[0] );
+    fprintf( stderr, "Использование: %s Город\n"
+                     "               %s Город%%20c%%20пробелами%%20в%%20имени\n",
+                     argv[0], argv[0] );
     return -1;
   }
 
@@ -102,7 +104,13 @@ int main(int argc, char **argv)
   if(result != CURLE_OK)
     return (int)result;
 
-  chunk.memory = malloc(1); /* grown as needed by the realloc above */
+  chunk.memory = (char*)malloc(1); /* grown as needed by the realloc above */
+  if( chunk.memory == NULL )
+  {
+    fprintf( stderr, "Недостаточно памяти для продолжения работы\n" );
+    return -1;
+  }
+  chunk.memory[0] = '\0';
   chunk.size = 0;           /* no data at this point */
 
   /* init the curl session */
