@@ -43,9 +43,7 @@ p:                   ; int parity(int arg1) {
     mov rax, rdi     ;   int ret = agr1;
     and rax, 1       ;   ret &= 1;  проверка на НЕчетность, p - это parity
     ret              ;   return ret; // через rax
-; ^ здесь нет манипуляций со стеком... как буд-то это inline-функция
-;                                      или макрос
-
+; ^ здесь нет манипуляций со стеком...
 
 ;;; add_element proc
 add_element:             ; add_element( data[s]. i )
