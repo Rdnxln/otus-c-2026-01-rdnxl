@@ -23,6 +23,6 @@ c-prog2: reverse_main_no_recursive.c
 	$(CC) -S -masm=intel -fno-asynchronous-unwind-tables -fno-dwarf2-cfi-asm $^
 
 clean:
-	rm -f asm-prog *.o core c-prog c-prog2 reverse_main.s reverse_main_no_recursive.s
+	rm -f asm-prog asm-prog2 *.o core c-prog c-prog2 reverse_main.s reverse_main_no_recursive.s
 
 .PHONY: clean
