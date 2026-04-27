@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <unistd.h>
 
-int64_t   data[]       = { 4, 8, 15, 16, 23, 42, 43, 21, 44, 24, 3, 2 };
+ssize_t   data[]       = { 4, 8, 15, 16, 23, 42, 43, 21, 44, 24, 3, 2 };
 size_t    data_length  = ( sizeof(data) / sizeof(data[0]) );
 char      empty_string = 0;
 
 typedef  struct list  list_t;
 struct list
 {
-  int64_t   num;
+  ssize_t   num;
   list_t    *prev; /* не next, а prev потому что сохраняется указатель
                       на ранее добавленные части списка */
 };
@@ -19,7 +19,7 @@ struct list
     0 - num четное
     1 - num нечетное
  */
-/* inline */ int64_t  p( int64_t num )
+/* inline */ ssize_t  p( ssize_t num )
 {
   return  ( num & 0x1 );
 }
@@ -27,7 +27,7 @@ struct list
 /*
   Вывод целого числа с разделитетем
  */
-void print_int( int64_t num )
+void print_int( ssize_t num )
 {
   printf( "%ld ", num );
   fflush( NULL );
@@ -38,7 +38,7 @@ void print_int( int64_t num )
   MAP-функция для элементов списка
   с вызовом фукнции func_for_element
  */
-void m( list_t *list, void (*func_for_element)(int64_t num) )
+void m( list_t *list, void (*func_for_element)(ssize_t num) )
 {
   for( ; list != NULL ; list=list->prev )
     func_for_element( list->num );
@@ -65,7 +65,7 @@ void free_list( list_t *list )
 }
 
 
-list_t *add_element( int64_t num, list_t *list )
+list_t *add_element( ssize_t num, list_t *list )
 {
   list_t *new_head = (list_t*) malloc( sizeof(list_t) );
   if( new_head == NULL )
@@ -82,7 +82,7 @@ list_t *add_element( int64_t num, list_t *list )
          от исходного списка list
          с использованием функции-условия (фильтра)
  */
-list_t* f( list_t *list, list_t *new_list, int64_t (*condition_func)(int64_t num) )
+list_t* f( list_t *list, list_t *new_list, ssize_t (*condition_func)(ssize_t num) )
 {
   for( ; list != NULL; list = list->prev )
     if( condition_func( list->num ) != 0 )
