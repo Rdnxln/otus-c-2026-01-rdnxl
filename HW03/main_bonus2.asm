@@ -190,6 +190,18 @@ ff:
 break_f:                 ; в AX - новый new_list или неизменный new_lists
     ret
 
+;;; my_free proc         ; my_free( list_t *list )
+my_free:                 ;          arg1, rdi
+    test rdi, rdi        ; if(list == NULL)
+    jz out_my_free       ;   return;
+    push rbx             ;
+    mov rbx, [rdi + 8]   ; list_t *prev = list->prev
+    call free            ; free( list )
+    mov rdi, rbx         ; list = prev
+    pop rbx
+    jmp my_free          ; my_free( list )
+out_my_free:
+    ret
 
 ;;; main proc
 main:
@@ -230,6 +242,7 @@ adding_loop:                       ; do {
     mov rdx, p                     ; arg3; unsigned int(*p)(unsigned int)
     xor rsi, rsi                   ; arg2; *new_list (сейчас равен NULL)
     mov rdi, rbx                   ; arg1; *list
+    push rbx
     call f                         ; new_list = f( list, new_list, (int)(*parity(int)) )
                                    ; в AX расположен new_list
 
@@ -239,12 +252,22 @@ adding_loop:                       ; do {
                                    ; и освободить его уже не получится))
                                    ; хотя нет.. ссылка на изначальный массив осталась в rbx
 
+    push rax
+
                                    ; вызываем MAP нового списка для функции print_int
     mov rsi, print_int             ; arg2; указатель на ф-цию print_int
     call m                         ; m( new_list , print_int )
 
     mov rdi, empty_str             ; arg1, empty_str
     call puts                      ; puts( "" \0 )
+    pop rbx
+
+    mov rdi, rbx
+    call my_free
+
+    pop rax
+    mov rdi, rax
+    call my_free
 
     pop rbx                        ; восстанавливаем регистр
 

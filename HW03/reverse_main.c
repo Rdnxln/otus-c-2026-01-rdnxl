@@ -33,18 +33,36 @@ void print_int( int64_t num )
   fflush( NULL );
 }
 
-
 /*
-  MAP-функция для элементов списка
+  MAP-функция для данных из элементов списка
   с вызовом фукнции func_for_element
  */
 void m( list_t *list, void (*func_for_element)(int64_t num) )
 {
   if( list == NULL ) return;
 
-  func_for_element( list->num );
+  func_for_element( list->num );  /* вызов функции для данных из элемента */
 
   m( list->prev, func_for_element ); /* рекурсивный вызов */
+}
+
+/*
+  Освобождение динамически выделенной памяти
+ */
+void free_list( list_t *list )
+{
+  list_t *it = list;
+  while( it != NULL )
+  {
+    /* сохраняем указатель на соседний элемент из текущего элемента,
+       пока память текущего элемента еще "наша" */
+    list_t *prev = it->prev;
+
+    free( it ); /* освобождаем память под текущий элемент */
+
+    it = prev;  /* указатель на соседний элемент теперь берем
+                   как текущий для следующей итерации */
+  }
 }
 
 
@@ -105,18 +123,17 @@ int main( int argc __attribute__((unused)), char **argv __attribute__((unused)) 
   list_t *odd_list = NULL; /* изначально список пустой */
   odd_list = f( list, odd_list, p ); 
 
-
-  /* выводим полученный список */
-  list = odd_list;
-  /* т.к. делается полный аналог,
-     то здесь мы теряем ссылку на оригинальный список
-     в динамически выделенной памяти,
-     а это утечка памяти */
-
   /* выводим отфильтрованный список ... */
-  m( list, print_int );
+  m( odd_list, print_int );
   /* ... и перевод строки*/
   puts( &empty_string );
+
+  // устранение утечки
+  free_list( odd_list );
+  odd_list = NULL;
+
+  free_list( list );
+  list = NULL;
 
   return 0;
 }
