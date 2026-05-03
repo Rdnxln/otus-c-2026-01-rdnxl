@@ -1,0 +1,63 @@
+diff --git a/HW05/clib/deps/str-flatten/str-flatten.c b/HW05/clib/deps/str-flatten/str-flatten.c
+index 40b0b6f..5741374 100644
+--- a/HW05/clib/deps/str-flatten/str-flatten.c
++++ b/HW05/clib/deps/str-flatten/str-flatten.c
+@@ -23,6 +23,8 @@ str_flatten(const char *array[], int start, int end) {
+   }
+ 
+   char *str = malloc(size + count);
++  if( str == NULL ) return NULL; // fix
++
+   str[size + count - 1] = '\0';
+ 
+   for (int i = start, j = 0; i < (end - 1); ++i, ++j) {
+diff --git a/HW05/clib/src/clib.c b/HW05/clib/src/clib.c
+index 24eebee..1356d1a 100644
+--- a/HW05/clib/src/clib.c
++++ b/HW05/clib/src/clib.c
+@@ -116,8 +116,18 @@ int main(int argc, const char **argv) {
+   debug(&debugger, "args: %s", args);
+ 
+   // aliases
++  /* mem leak for 2 byte (in case of 'i\0') or more
+   cmd = strcmp(cmd, "i") == 0 ? strdup("install") : cmd;
+   cmd = strcmp(cmd, "up") == 0 ? strdup("update") : cmd;
++   */
++  if( strcmp(cmd, "i") == 0 ) {
++    free( cmd );
++    cmd = strdump("install");
++  }
++  if( strcmp(cmd, "up") == 0 ) {
++    free( cmd );
++    cmd = strdup( "update" );
++  }
+ 
+ #ifdef _WIN32
+   format(&command, "clib-%s.exe", cmd);
+diff --git a/HW05/clib/src/common/clib-package.c b/HW05/clib/src/common/clib-package.c
+index 268538e..d861395 100644
+--- a/HW05/clib/src/common/clib-package.c
++++ b/HW05/clib/src/common/clib-package.c
+@@ -661,9 +661,20 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
+ #else
+       res = http_get(json_url);
+ #endif
+-      json = res->data;
+-      _debug("status: %d", res->status);
++
++      if(res) {
++        json = res->data;
++        _debug("status: %d", res->status);
++      }
++
+       if (!res || !res->ok) {
++
++        if (res) { // leak?
++          json = NULL;
++          http_get_free(res);
++          res = NULL;
++        }
++
+         goto download;
+       }
+       log = "fetch";
