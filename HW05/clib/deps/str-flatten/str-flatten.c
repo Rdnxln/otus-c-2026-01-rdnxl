@@ -23,6 +23,8 @@ str_flatten(const char *array[], int start, int end) {
   }
 
   char *str = malloc(size + count);
+  if( str == NULL ) return NULL; // fix
+
   str[size + count - 1] = '\0';
 
   for (int i = start, j = 0; i < (end - 1); ++i, ++j) {

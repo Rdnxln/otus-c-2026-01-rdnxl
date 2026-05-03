@@ -664,6 +664,10 @@ clib_package_new_from_slug_with_package_name(const char *slug, int verbose,
       json = res->data;
       _debug("status: %d", res->status);
       if (!res || !res->ok) {
+        if (res) { // leak
+          http_get_free(res);
+          res = NULL;
+        }
         goto download;
       }
       log = "fetch";
@@ -775,8 +779,6 @@ error:
   free(repo);
   if (!res && json)
     free(json);
-  if (res)
-    http_get_free(res);
   if (pkg)
     clib_package_free(pkg);
   return NULL;

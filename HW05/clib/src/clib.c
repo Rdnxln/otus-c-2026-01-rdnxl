@@ -116,8 +116,18 @@ int main(int argc, const char **argv) {
   debug(&debugger, "args: %s", args);
 
   // aliases
+  /* mem leak for 2 byte (in case of 'i\0') or more
   cmd = strcmp(cmd, "i") == 0 ? strdup("install") : cmd;
   cmd = strcmp(cmd, "up") == 0 ? strdup("update") : cmd;
+   */
+  if( strcmp(cmd, "i") == 0 ) {
+    free( cmd );
+    cmd = strdump("install");
+  }
+  if( strcmp(cmd, "up") == 0 ) {
+    free( cmd );
+    cmd = strdup( "update" );
+  }
 
 #ifdef _WIN32
   format(&command, "clib-%s.exe", cmd);
