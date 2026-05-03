@@ -122,7 +122,7 @@ int main(int argc, const char **argv) {
    */
   if( strcmp(cmd, "i") == 0 ) {
     free( cmd );
-    cmd = strdump("install");
+    cmd = strdup("install");
   }
   if( strcmp(cmd, "up") == 0 ) {
     free( cmd );

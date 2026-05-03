@@ -12,7 +12,7 @@ index 40b0b6f..5741374 100644
  
    for (int i = start, j = 0; i < (end - 1); ++i, ++j) {
 diff --git a/HW05/clib/src/clib.c b/HW05/clib/src/clib.c
-index 24eebee..1356d1a 100644
+index 24eebee..e52cbe2 100644
 --- a/HW05/clib/src/clib.c
 +++ b/HW05/clib/src/clib.c
 @@ -116,8 +116,18 @@ int main(int argc, const char **argv) {
@@ -25,7 +25,7 @@ index 24eebee..1356d1a 100644
 +   */
 +  if( strcmp(cmd, "i") == 0 ) {
 +    free( cmd );
-+    cmd = strdump("install");
++    cmd = strdup("install");
 +  }
 +  if( strcmp(cmd, "up") == 0 ) {
 +    free( cmd );
@@ -61,3 +61,6 @@ index 268538e..d861395 100644
          goto download;
        }
        log = "fetch";
+diff --git a/HW05/mem_leak.patch b/HW05/mem_leak.patch
+new file mode 100644
+index 0000000..e69de29
