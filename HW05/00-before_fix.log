@@ -1,0 +1,269 @@
+../../src/common/clib-package.c: In function ‘fetch_package_file_thread’:
+../../src/common/clib-package.c:1005:10: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+ 1005 |   return (void *)rc;
+      |          ^
+../../src/common/clib-package.c: In function ‘clib_package_install_executable’:
+../../src/common/clib-package.c:1154:7: warning: implicit declaration of function ‘realpath’ [-Wimplicit-function-declaration]
+ 1154 |       realpath(opts.prefix, path);
+      |       ^~~~~~~~
+../../src/common/clib-package.c:1160:5: warning: implicit declaration of function ‘setenv’; did you mean ‘getenv’? [-Wimplicit-function-declaration]
+ 1160 |     setenv("PREFIX", path, 1);
+      |     ^~~~~~
+      |     getenv
+../../src/common/clib-package.c: In function ‘clib_package_install’:
+../../src/common/clib-package.c:1474:5: warning: implicit declaration of function ‘usleep’; did you mean ‘sleep’? [-Wimplicit-function-declaration]
+ 1474 |     usleep(1024 * 10);
+      |     ^~~~~~
+      |     sleep
+../../src/common/clib-package.c:1575:47: warning: passing argument 2 of ‘clib_package_install_executable’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1575 |     rc = clib_package_install_executable(pkg, dir, verbose);
+      |                                               ^~~
+../../src/common/clib-package.c:1066:64: note: expected ‘char *’ but argument is of type ‘const char *’
+ 1066 | int clib_package_install_executable(clib_package_t *pkg, char *dir,
+      |                                                          ~~~~~~^~~
+../../deps/gumbo-parser/error.c:30:21: warning: ‘kMessageBufferSize’ defined but not used [-Wunused-const-variable=]
+   30 | static const size_t kMessageBufferSize = 256;
+      |                     ^~~~~~~~~~~~~~~~~~
+../../deps/gumbo-parser/parser.c:550:27: warning: ‘get_current_template_insertion_mode’ defined but not used [-Wunused-function]
+  550 | static GumboInsertionMode get_current_template_insertion_mode(
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/gumbo-parser/parser.c:546:13: warning: ‘pop_template_insertion_mode’ defined but not used [-Wunused-function]
+  546 | static void pop_template_insertion_mode(GumboParser* parser) {
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/gumbo-parser/parser.c:540:13: warning: ‘push_template_insertion_mode’ defined but not used [-Wunused-function]
+  540 | static void push_template_insertion_mode(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/parson/parson.c: In function ‘remove_comments’:
+../../deps/parson/parson.c:280:13: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+  280 |             for (i = 0; i < (ptr - string) + end_token_len; i++)
+      |             ^~~
+../../deps/parson/parson.c:282:17: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+  282 |                 string = ptr + end_token_len - 1;
+      |                 ^~~~~~
+In file included from ../../deps/describe/describe.h:15,
+                 from package-new.c:2:
+package-new.c: In function ‘main’:
+../../deps/assertion-macros/assertion-macros.h:146:9: warning: format ‘%s’ expects argument of type ‘char *’, but argument 4 has type ‘void *’ [-Wformat=]
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/assertion-macros/assertion-macros.h:146:9: note: in definition of macro ‘assert_str_equal’
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/assertion-macros/assertion-macros.h:146:40: note: format string is defined here
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |                                       ~^
+      |                                        |
+      |                                        char *
+      |                                       %p
+../../deps/assertion-macros/assertion-macros.h:146:9: warning: format ‘%s’ expects argument of type ‘char *’, but argument 4 has type ‘void *’ [-Wformat=]
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/assertion-macros/assertion-macros.h:146:9: note: in definition of macro ‘assert_str_equal’
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../deps/assertion-macros/assertion-macros.h:146:40: note: format string is defined here
+  146 |       , "Assertion error: \"%s\" == \"%s\" (%s:%d)\n"           \
+      |                                       ~^
+      |                                        |
+      |                                        char *
+      |                                       %p
+==11167== Memcheck, a memory error detector
+==11167== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==11167== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==11167== Command: ./package-dependency-new
+==11167== 
+==11167== 
+==11167== HEAP SUMMARY:
+==11167==     in use at exit: 0 bytes in 0 blocks
+==11167==   total heap usage: 5,188 allocs, 5,188 frees, 541,024 bytes allocated
+==11167== 
+==11167== All heap blocks were freed -- no leaks are possible
+==11167== 
+==11167== For lists of detected and suppressed errors, rerun with: -s
+==11167== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==11168== Memcheck, a memory error detector
+==11168== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==11168== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==11168== Command: ./package-install
+==11168== 
+==11168== 
+==11168== HEAP SUMMARY:
+==11168==     in use at exit: 2,442,076 bytes in 35,377 blocks
+==11168==   total heap usage: 159,581 allocs, 124,204 frees, 32,807,747 bytes allocated
+==11168== 
+==11168== 5 bytes in 1 blocks are definitely lost in loss record 5 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11BC10: main (package-install.c:35)
+==11168== 
+==11168== 5 bytes in 1 blocks are definitely lost in loss record 6 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11BDB9: main (package-install.c:46)
+==11168== 
+==11168== 7 bytes in 1 blocks are definitely lost in loss record 9 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11BFB2: main (package-install.c:56)
+==11168== 
+==11168== 14 bytes in 2 blocks are definitely lost in loss record 21 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11C55B: main (package-install.c:84)
+==11168== 
+==11168== 14 bytes in 2 blocks are definitely lost in loss record 22 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168== 
+==11168== 57 bytes in 7 blocks are definitely lost in loss record 135 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x140FFC: strdup (strdup.c:24)
+==11168==    by 0x12101A: clib_package_install (clib-package.c:1383)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11C55B: main (package-install.c:84)
+==11168== 
+==11168== 79 (64 direct, 15 indirect) bytes in 2 blocks are definitely lost in loss record 180 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11B9A1: main (package-install.c:23)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 190 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11BB9A: main (package-install.c:33)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 191 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11BD43: main (package-install.c:44)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 192 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11BF3C: main (package-install.c:54)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 193 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11DE43: install_packages (clib-package.c:370)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11BFB2: main (package-install.c:56)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 194 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11C20E: main (package-install.c:68)
+==11168== 
+==11168== 94 (64 direct, 30 indirect) bytes in 2 blocks are definitely lost in loss record 195 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11C4E5: main (package-install.c:82)
+==11168== 
+==11168== 188 (128 direct, 60 indirect) bytes in 4 blocks are definitely lost in loss record 262 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11DE43: install_packages (clib-package.c:370)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11BFB2: main (package-install.c:56)
+==11168== 
+==11168== 188 (128 direct, 60 indirect) bytes in 4 blocks are definitely lost in loss record 263 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11DE43: install_packages (clib-package.c:370)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168== 
+==11168== 276 bytes in 69 blocks are definitely lost in loss record 279 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x11FD4A: fetch_package_file_thread (clib-package.c:999)
+==11168==    by 0x49A1C03: start_thread (pthread_create.c:442)
+==11168==    by 0x4A211BF: clone (clone.S:100)
+==11168== 
+==11168== 940 (640 direct, 300 indirect) bytes in 20 blocks are definitely lost in loss record 340 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11DE43: install_packages (clib-package.c:370)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11C55B: main (package-install.c:84)
+==11168== 
+==11168== 1,128 (768 direct, 360 indirect) bytes in 24 blocks are definitely lost in loss record 343 of 459
+==11168==    at 0x48407B4: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==11168==    by 0x13AD7A: http_get_shared (http-get.c:46)
+==11168==    by 0x11EDF9: clib_package_new_from_slug_with_package_name (clib-package.c:660)
+==11168==    by 0x11F4B6: clib_package_new_from_slug (clib-package.c:796)
+==11168==    by 0x11DE43: install_packages (clib-package.c:370)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11DE64: install_packages (clib-package.c:374)
+==11168==    by 0x121A5A: clib_package_install_dependencies (clib-package.c:1615)
+==11168==    by 0x121945: clib_package_install (clib-package.c:1579)
+==11168==    by 0x11C55B: main (package-install.c:84)
+==11168== 
+==11168== LEAK SUMMARY:
+==11168==    definitely lost: 2,490 bytes in 149 blocks
+==11168==    indirectly lost: 975 bytes in 65 blocks
+==11168==      possibly lost: 0 bytes in 0 blocks
+==11168==    still reachable: 2,438,611 bytes in 35,163 blocks
+==11168==         suppressed: 0 bytes in 0 blocks
+==11168== Reachable blocks (those to which a pointer was found) are not shown.
+==11168== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==11168== 
+==11168== For lists of detected and suppressed errors, rerun with: -s
+==11168== ERROR SUMMARY: 18 errors from 18 contexts (suppressed: 0 from 0)
+make: *** [Makefile:20: test] Ошибка 1
