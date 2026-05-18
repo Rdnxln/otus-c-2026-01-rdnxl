@@ -21,10 +21,9 @@ lib:
 
 solution: main.c $(OBJS)
 	gcc -g $(OPTS) $(LERR_CFLAGS) ./main.c -o ./solution $(OBJS)  $(LERR_LDLIBS)
-	@ [ -x ./solution ] && echo 'Try to run ./solution_run.sh'
 
 $(OBJS):    $(SRCS)
-	gcc -I./lerr -c $^
+	gcc $(OPTS) -I./lerr -c $^
 
 .PHONY: clean
 

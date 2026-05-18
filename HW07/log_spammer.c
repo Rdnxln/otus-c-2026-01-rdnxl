@@ -17,7 +17,7 @@ int thread_func( void* arg )
     thrd_sleep( &(struct timespec){.tv_sec=0, .tv_nsec= ( *name=='A' ) ? i*1000000 : 9000000-i*1000000 }, NULL );
   }
 
-  return 0;
+  return thrd_success;
 }
 
 /*

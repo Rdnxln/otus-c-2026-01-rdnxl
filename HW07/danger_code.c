@@ -18,7 +18,9 @@ void null_ptr_example( void )
 void double_free( void )
 {
   int *mem = (int*)malloc( 10 * sizeof(int) );
-  free( mem );
+  int *mem2 = mem;
+
+  free( mem2 );
   free( mem );
 
   return;
@@ -28,6 +30,8 @@ void div_by_zero( int c )
 {
   c--;
   int b = 2 / c;
+
+  b--; // поиспользуем переменную, чтобы компилятор не выдавал warning
 
   return;
 }

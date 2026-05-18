@@ -1,6 +1,9 @@
 #ifndef    __LOGGERR_H__
 #define    __LOGGERR_H__
 
+#include <signal.h>
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,9 +44,10 @@ typedef enum
 /*
  * Инициализация библиотеки сообщений
  *   out_log_file - путь/до/файла_журнала
+ * 
  * В случае ошибки доступа к файлу журнала - аварийное завершение программы
  */
-void lerr_init        (const char *out_log_file);
+int  lerr_init        (const char *out_log_file);
 
 
 /*
@@ -51,6 +55,11 @@ void lerr_init        (const char *out_log_file);
  */
 void lerr_exit        ();
 
+/*
+ * Требуется остановка программы
+ */
+sig_atomic_t
+     lerr_is_need_stop();
 
 /*
  * Включить дублирование на стандартный вывод об ошибках
@@ -67,12 +76,18 @@ void lerr_stderr_off  ();
 /*
  * Записать сообщение в журнал
  *   level  - уровень значимости
- *   format - "printf-формат сообщения"
- *   ...    - аргументы согласно формату сообщения
+ *   ...   - "printf-формат сообщения" [, аргументы согласно формату сообщения ...]
  */
+#define \
+     lerr_mess(level, ...) \
+     lerr_mess_intern ((level), __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+
+/*
 #define \
      lerr_mess(level, format, ...) \
      lerr_mess_intern ((level), __FILE__, __func__, __LINE__, (format), ##__VA_ARGS__)
+ */
+
 
 /*
  * Записать сообщение в журнал (полный вызов с предопределенными макросами)

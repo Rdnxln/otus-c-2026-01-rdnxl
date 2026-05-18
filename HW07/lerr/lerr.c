@@ -12,18 +12,24 @@
 
 #include "lerr.h"
 
+static volatile sig_atomic_t lerr_need_stop = 0;
+
+
 /*
  * Глобальные мьютексы для синхронизации потоков
  */
 /* доступ к дескрипторам вывода */
+
 static mtx_t      log_mtx;
 static once_flag  log_init_flag  = ONCE_FLAG_INIT;
 
 /* доступ к потокоНЕбезопасной функции localtime(),
    чтобы не использовать localtime_r из POSIX,
    иначе мы получим warnings! */
+/*
 static mtx_t      time_mtx;
 static once_flag  time_init_flag = ONCE_FLAG_INIT;
+ */
 
 /*
  * File descriptor for error logs output
@@ -38,12 +44,14 @@ int fd_log         = -1;
  */
 int to_stderr_copy =  0;
 
+/*
 void lerr_init_time_mtx( void ) {
   if( mtx_init( &time_mtx, mtx_plain ) != thrd_success )
   {
     write(2, "Ошибка инициализации mutex\n", sizeof("Ошибка инициализации mutex\n") -1 );
   }
 }
+ */
 
 void lerr_log_time_mtx( void ) {
   if( mtx_init( &log_mtx, mtx_plain ) != thrd_success )
@@ -52,26 +60,31 @@ void lerr_log_time_mtx( void ) {
   }
 }
 
+
 void lerr_print_stack_trace( int fd, int dup2stderr ) {
-  char  output[ 512 ];
+/*char  output[ 512 ]; */
   void *array [ MAX_STACK_TRACE_DEPTH  ];
 
   int size = backtrace( array, MAX_STACK_TRACE_DEPTH );
-
+/*
   int sz = 0;
   sz = snprintf( output, sizeof(output), "\n  Извлечено %d вложенных вызовов:\n", size );
 
   if( fd != -1 )
     write( fd, output, sz );
-
   if( dup2stderr != 0 )
-    write( 2 , output, sz );
+    write( STDERR_FILENO , output, sz );
+ */
+  if( fd != -1 )
+    write( fd, "\nТрассировка вызовов:\n", sizeof( "Трассировка вызовов:\n" ) -1 );
+  if( dup2stderr != 0 )
+    write( STDERR_FILENO, "\nТрассировка вызовов:\n", sizeof( "Трассировка вызовов:\n" ) -1 );
+
 
   if( fd != -1 )
-    backtrace_symbols_fd(array, size, fd);
+    backtrace_symbols_fd( array, size, fd );
   if( dup2stderr != 0 )
-    backtrace_symbols_fd(array, size, 2);
- /* backtrace_symbols_fd(array, size, STDERR_FILENO); */
+    backtrace_symbols_fd( array, size, STDERR_FILENO );
 }
 
 
@@ -81,7 +94,8 @@ void lerr_print_stack_trace( int fd, int dup2stderr ) {
 void lerr_handle_signal( int sig )
 {
   char *msg = NULL;
-  switch(sig)
+
+  switch( sig )
   {
     case SIGFPE:
       msg = "Исключение по арифметической операции";
@@ -96,32 +110,52 @@ void lerr_handle_signal( int sig )
       msg = "Неизвестное исключение";
       break;
   }
+
   /* Пишем в журнал с ключом LERR_FATAL, чтобы выдать стек вызовов перед крахом программы */
+
   lerr_mess( LERR_FATAL, "%s (signal #%d)", msg, sig );
-  exit( -sig );
+
+  switch( sig )
+  {
+    /* При получении данных сигналов работу программы сложно  */
+    case SIGFPE:
+    case SIGSEGV:
+    case SIGABRT:
+      _exit( EXIT_FAILURE );
+      break;
+    default:
+      break;
+  }
+
+  lerr_need_stop = 1;
+
 }
 
 
 /*
  * Инициализация библиотеки
  */
-void  lerr_init        (const char *out_log_file)
+int   lerr_init        (const char *out_log_file)
 {
   /* Гарантируем, что мьютекс инициализирован перед использованием */
+/*
   call_once(&time_init_flag, lerr_init_time_mtx);
+ */
   call_once(&log_init_flag , lerr_log_time_mtx );
 
-  if (signal(SIGFPE, lerr_handle_signal) == SIG_ERR) {
-    exit(-1);
-  }
+  struct sigaction sa;
+  sa.sa_handler = lerr_handle_signal;
+  sigemptyset( &sa.sa_mask );
+  sa.sa_flags = 0;
 
-  if (signal(SIGSEGV, lerr_handle_signal) == SIG_ERR) {
-    exit(-1);
-  }
-
-  if (signal(SIGABRT, lerr_handle_signal) == SIG_ERR) {
-    exit(-1);
-  }
+  if( sigaction( SIGSEGV, &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGFPE , &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGABRT, &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGINT , &sa, NULL ) < 0 )
+    return -1;
 
   if( fd_log != -1 )
     lerr_exit();
@@ -129,9 +163,8 @@ void  lerr_init        (const char *out_log_file)
   if( out_log_file == NULL )
   {
     const char msg[] = "Не указан файл для журнала ошибок\n";
-    write( 2, msg, sizeof(msg) -1 );
-    exit(-1);
-    return;
+    write( STDERR_FILENO, msg, sizeof(msg) -1 );
+    return -1;
   }
 
   fd_log = open( out_log_file,
@@ -142,28 +175,28 @@ void  lerr_init        (const char *out_log_file)
 
   if( fd_log == -1 )
   {
-    const char msg[] = "Can't access to log file: '";
-    write( 2, msg, sizeof(msg) -1 );
+    const char msg[] = "Нет доступа к файлу журнала: '";
+    write( STDERR_FILENO, msg, sizeof(msg) -1 );
 
     while( *out_log_file != '\0' ) {
-      write( 2, out_log_file, 1 );
+      write( STDERR_FILENO, out_log_file, 1 );
       out_log_file++;
     }
-    write( 2, &"'\n", 2 );
-    exit(-1);
-  }
-  else
-  {
-    /*
-       const char msg[] = "\nНачало работы";
-       write( fd_log, msg, sizeof(msg) -1 );
-     */
-    lerr_mess( LERR_INFO, "Начато журналирование в файл '%s', если это другой файл - логи подделаны:)\n"
-                          "<date>-<time>.<nanosec> [level ] {file:line\tfunc_name()}\tСообщение в журнале... (<- формат записи в журнале)",
-                          out_log_file );
+    write( STDERR_FILENO, &"'\n", 2 );
+    return -1;
   }
 
-  return;
+  lerr_need_stop = 0;
+
+/*
+   const char msg[] = "\nНачало работы";
+   write( fd_log, msg, sizeof(msg) -1 );
+ */
+  lerr_mess( LERR_INFO, "Начато журналирование в файл '%s', если это другой файл - логи подделаны:)\n"
+                        "<date>-<time>.<nanosec> [level ] {file:line\tfunc_name()}\tСообщение в журнале... (<- формат записи в журнале)",
+                        out_log_file );
+
+  return 0;
 }
 
 void lerr_exit       ()
@@ -174,6 +207,12 @@ void lerr_exit       ()
     close( fd_log );
     fd_log = -1;
   }
+}
+
+sig_atomic_t
+     lerr_is_need_stop()
+{
+  return lerr_need_stop;
 }
 
 void lerr_stderr_on   ()
@@ -215,20 +254,20 @@ void lerr_mess_intern (lerr_level_t  level,
   /*
   localtime_s( &ts.tv_sec, &local );
   К сожалению, данная фукнция (Standard C11, Annex K), так и не попала в glibc (у меня Debian)
-
-  localtime_r( &ts.tv_sec, &local );
-  К сожалению, данная функция - это POSIX-расширение и вызовет предупреждение компилятора
    */
 
-  /* Будем пользоваться тем, что есть */
+  localtime_r( &ts.tv_sec, &local );
+
+/*
   if( mtx_lock( &time_mtx ) == thrd_success )
   {
     struct tm *tmp = localtime(&ts.tv_sec);
     if (tmp) {
-      local = *tmp; /* Копируем данные в локальную структуру потока */
+      local = *tmp;
     }
     mtx_unlock(&time_mtx);
   }
+ */
 
   /* Форматируем основное время и добавляем наносекунды */
   strftime( time_str, sizeof(time_str), "%y%m%d-%H%M%S", &local );
@@ -262,6 +301,7 @@ void lerr_mess_intern (lerr_level_t  level,
   /* Системный вызов атомарен, но ...
      согласуем все-же доступ к ресурсам (дескрипторам)
      через mutex */
+
   if( mtx_lock( &log_mtx ) == thrd_success )
   {
     if( to_stderr_copy != 0 )
