@@ -14,7 +14,7 @@ int thread_func( void* arg )
     else
       lerr_mess( LERR_INFO, "BBBBBBBBB" );
 
-    thrd_sleep( &(struct timespec){.tv_sec=0, .tv_nsec= ( *name=='A' ) ? i*1000000 : 9000000-i*1000000 }, NULL );
+    thrd_sleep( &(struct timespec){.tv_sec=0, .tv_nsec= ( *name=='A' ) ? i*100000 : 900000-i*100000 }, NULL );
   }
 
   return thrd_success;

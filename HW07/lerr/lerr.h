@@ -1,9 +1,6 @@
 #ifndef    __LOGGERR_H__
 #define    __LOGGERR_H__
 
-#include <signal.h>
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,11 +52,6 @@ int  lerr_init        (const char *out_log_file);
  */
 void lerr_exit        ();
 
-/*
- * Требуется остановка программы
- */
-sig_atomic_t
-     lerr_is_need_stop();
 
 /*
  * Включить дублирование на стандартный вывод об ошибках

@@ -1,10 +1,60 @@
+#define _POSIX_C_SOURCE 200809L /* можно же? для backtrace_... :-) */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <lerr.h>
 #include "danger_code.h"
 #include "log_spammer.h"
+
+static volatile sig_atomic_t need_stop = 0;
+
+/*
+ * Обработчик сигналов (исключений)
+ */
+void my_handle_signal( int sig )
+{
+  char *msg = NULL;
+
+  switch( sig )
+  {
+    case SIGFPE:
+      msg = "Исключение SIGFPE";
+      break;
+    case SIGSEGV:
+      msg = "Исключение SIGSEGV";
+      break;
+    case SIGABRT:
+      msg = "Исключение SIGABRT";
+      break;
+    default:
+      msg = "Исключение";
+      break;
+  }
+
+  /* Пишем в журнал с ключом LERR_FATAL, чтобы выдать стек вызовов перед крахом программы */
+
+  lerr_mess( LERR_FATAL, "%s (signal #%d)", msg, sig );
+
+  switch( sig )
+  {
+    /* При получении данных сигналов работу программы сложно  */
+    case SIGFPE:
+    case SIGSEGV:
+    case SIGABRT:
+      _exit( EXIT_FAILURE );
+      break;
+    default:
+      break;
+  }
+
+  need_stop = 1;
+
+}
+
 
 int main()
 {
@@ -18,15 +68,29 @@ int main()
     exit( EXIT_FAILURE );
   }
 
+  struct sigaction sa;
+  sa.sa_handler = my_handle_signal;
+  sigemptyset( &sa.sa_mask );
+  sa.sa_flags = 0;
+
+  if( sigaction( SIGSEGV, &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGFPE , &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGABRT, &sa, NULL ) < 0 )
+    return -1;
+  if( sigaction( SIGINT , &sa, NULL ) < 0 )
+    return -1;
+
   lerr_stderr_on();
 
   lerr_mess( LERR_INFO, "Программа запущена" );
 
   do
   {
-    if( key != 0x0a )
-    {
-      puts(
+    int hide_key = 0;
+
+    puts(
   "\n\nЧто будем делать?:\n"
   " 1<Enter> - обращение через NULL-указатель (фатально)\n"
   " 2<Enter> - двойное освобождение памяти (фатально)\n"
@@ -34,10 +98,11 @@ int main()
   " 4<Enter> - потоковые гонки для журналирования\n"
   " 5<Enter> - трассировка вызовов из рекурсии\n"
   " q<Enter> - выход из программы\n"
-          );
-    }
+        );
 
     key = getchar();
+    while ((hide_key = getchar()) != '\n' && hide_key != EOF);
+
     switch(key)
     {
       case '1':
@@ -70,14 +135,7 @@ int main()
         break;
     }
 
-    if( lerr_is_need_stop() == (sig_atomic_t)1 ) break;
-    /* Т.к. все обработчики назначаются не в main(),
-       а во "внутренностях" библиотеки, то они и флажок у себя там выставляют
-       в исключительных ситуациях, про который пользователь библиотеки может и не знать...
-       Поэтому, подготовили для него задокументированный вызов,
-       на который надо обращать внимание :)
-       Признаю, что попытка занести в библиотеку обработчики
-       исключительных ситуаций ошибочна, т.к. все случаи предусмотреть сложно ... */
+    if( need_stop == (sig_atomic_t)1 ) break;
 
   } while( key != 'q' );
 

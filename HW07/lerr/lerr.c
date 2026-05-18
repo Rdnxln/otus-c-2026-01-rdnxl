@@ -1,7 +1,6 @@
 #define _POSIX_C_SOURCE 200809L /* можно же? для backtrace_... :-) */
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <threads.h>
 #include <time.h>
 #include <unistd.h>
@@ -11,9 +10,6 @@
 #include <execinfo.h>
 
 #include "lerr.h"
-
-static volatile sig_atomic_t lerr_need_stop = 0;
-
 
 /*
  * Глобальные мьютексы для синхронизации потоков
@@ -88,49 +84,6 @@ void lerr_print_stack_trace( int fd, int dup2stderr ) {
 }
 
 
-/*
- * Обработчик сигналов (исключений)
- */
-void lerr_handle_signal( int sig )
-{
-  char *msg = NULL;
-
-  switch( sig )
-  {
-    case SIGFPE:
-      msg = "Исключение по арифметической операции";
-      break;
-    case SIGSEGV:
-      msg = "Исключение по доступу к памяти";
-      break;
-    case SIGABRT:
-      msg = "Исключение SIGABRT";
-      break;
-    default:
-      msg = "Неизвестное исключение";
-      break;
-  }
-
-  /* Пишем в журнал с ключом LERR_FATAL, чтобы выдать стек вызовов перед крахом программы */
-
-  lerr_mess( LERR_FATAL, "%s (signal #%d)", msg, sig );
-
-  switch( sig )
-  {
-    /* При получении данных сигналов работу программы сложно  */
-    case SIGFPE:
-    case SIGSEGV:
-    case SIGABRT:
-      _exit( EXIT_FAILURE );
-      break;
-    default:
-      break;
-  }
-
-  lerr_need_stop = 1;
-
-}
-
 
 /*
  * Инициализация библиотеки
@@ -142,20 +95,6 @@ int   lerr_init        (const char *out_log_file)
   call_once(&time_init_flag, lerr_init_time_mtx);
  */
   call_once(&log_init_flag , lerr_log_time_mtx );
-
-  struct sigaction sa;
-  sa.sa_handler = lerr_handle_signal;
-  sigemptyset( &sa.sa_mask );
-  sa.sa_flags = 0;
-
-  if( sigaction( SIGSEGV, &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGFPE , &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGABRT, &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGINT , &sa, NULL ) < 0 )
-    return -1;
 
   if( fd_log != -1 )
     lerr_exit();
@@ -186,8 +125,6 @@ int   lerr_init        (const char *out_log_file)
     return -1;
   }
 
-  lerr_need_stop = 0;
-
 /*
    const char msg[] = "\nНачало работы";
    write( fd_log, msg, sizeof(msg) -1 );
@@ -207,12 +144,6 @@ void lerr_exit       ()
     close( fd_log );
     fd_log = -1;
   }
-}
-
-sig_atomic_t
-     lerr_is_need_stop()
-{
-  return lerr_need_stop;
 }
 
 void lerr_stderr_on   ()
