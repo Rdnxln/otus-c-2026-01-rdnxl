@@ -55,14 +55,15 @@ int   daemon_mode = 0;
 char  file_stat[ KEYVAL_LEN *2 ];
 char  unix_sock[ KEYVAL_LEN *2 ];
 
-
 char **_argv = NULL;
+
 
 void stop_proc( int sig_num )
 {
   psignal(sig_num, "Получен сигнал" );
   flWork = 0;
 }
+
 
 void usage( void )
 {
@@ -193,23 +194,23 @@ void daemonize( void )
   struct rlimit     rl;
   struct sigaction  sa;
 
-  /* Сброс маски режима создания файла */
-  umask( 0 );
-
   /* Получение максимально возможного номера дескриптора файла */
   if( getrlimit(RLIMIT_NOFILE, &rl ) < 0 )
     perror( "невозможно получить максимальный размер дескриптора" );
 
   /* Станем лидером нового сеанса, чтобы утратить управлящий терминал вскоре */
-  if( ( pid = fork() ) < 0 )
+  if( ( pid = fork() ) < 0 ) {
     perror( "ошибка вызова функции fork" );
+    exit( EXIT_FAILURE );
+  }
   else {
     if( pid != 0 ) { /* родительский процесс */
       exit( EXIT_SUCCESS );
     }
   }
 
-  setsid();
+  if( setsid() < 0 )
+    _exit( EXIT_FAILURE );
 
   /* Обеспечить невозможность обретения управляющего терминала в будущем */
   sa.sa_handler = SIG_IGN;
@@ -219,13 +220,18 @@ void daemonize( void )
     syslog( LOG_CRIT, "Невозможно игнорировать сигнал SIGHUP "
                       "(pid дочернего процесса будет другим)" );
 
-  if( ( pid = fork()) < 0 )
+  if( ( pid = fork()) < 0 ) {
     syslog( LOG_CRIT, "Ошибка вызова функции fork" );
+    _exit( EXIT_FAILURE );
+  }
   else {
     if( pid != 0 ) { /* родительский процесс */
-      exit( EXIT_SUCCESS );
+      _exit( EXIT_SUCCESS );
     }
   }
+
+  /* Сброс маски режима создания файла */
+  umask( 0 );
 
   /* Назначение корневого каталога текущим рабочим каталогом,
      чтобы в последствии можно было отмонтировать файловую систему */
@@ -406,15 +412,17 @@ int main( int argc, char **argv )
     if( iifd > 0 ) {
       struct stat  statbuff;
 
-      memset( buff, 0, sizeof( buff ) );
+      /* memset( buff, 0, sizeof( buff ) ); */
+      /* это было лишнее, т.к. snprintf() добавляет в конец строки 0-байт */
+
       if( -1 == stat( file_stat, &statbuff ) )
       {
-        sprintf( buff, "-1" );
+        snprintf( buff, sizeof(buff), "-1" );
       }
       else
       {
         /* printf( "размер файла: %li (%i)\n", (int)statbuff.st_size , sizeof(off_t) ); */
-        sprintf( buff, "%li", statbuff.st_size );
+        snprintf( buff, sizeof(buff), "%li", statbuff.st_size );
       }
 
       write( iifd, buff, strlen(buff) );
