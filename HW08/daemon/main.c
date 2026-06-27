@@ -19,6 +19,12 @@
 #include <signal.h>
 
 #include <sys/stat.h>
+#include <sys/file.h>   /* flock */
+
+#include <syslog.h>
+#include <sys/resource.h>
+#include <sys/types.h>
+
 
 #define CONF_FILE          "/etc/daemon.conf"
 #define KEYVAL_LEN         512
@@ -32,13 +38,25 @@
 /* по-умолчанию создаем файл /tmp/daemon.sock для подключения к нашему демону */
 #define DEFAULT_UNIX_SOCK  "/tmp/daemon.sock"
 
+/* */
+#define PIDFILE_DIR        "/run/daemon/"
+#define PIDFILE            "daemon.pid"
+
 #define BUFF_SIZE          1024
 
-int   idf;
-int   flWork = 0;
+int   idf    = -1;
+int   pid_f  = -1;
+
+volatile sig_atomic_t
+      flWork =  0;
+
+int   daemon_mode = 0;
 
 char  file_stat[ KEYVAL_LEN *2 ];
 char  unix_sock[ KEYVAL_LEN *2 ];
+
+
+char **_argv = NULL;
 
 void stop_proc( int sig_num )
 {
@@ -49,13 +67,21 @@ void stop_proc( int sig_num )
 void usage( void )
 {
   fprintf( stderr,
+"Формат запуска:\n"
+" %s      Обычный режим.\n"
+" %s -d   Режим демона.\n", _argv[0], _argv[0] );
+
+  /* не стал делать одним вызовом, форматированный вывод
+     с длинющими строками-шаблонами - не очень хорошая идея */
+  fprintf( stderr,
+"В режиме демона все сообщения выводятся в syslog.\n"
 "Необходимо создать файл конфигурации " CONF_FILE "\n"
 "с параметрами:\n"
 "  " FILE_STAT_KEY "=/path/file\n"
 "  " UNIX_SOCK_KEY "=/path/unix-sock\n"
 "где\n"
-"  " FILE_STAT_KEY " - наблюдаемый файл (по-умолчанию " DEFAULT_FILE_STAT ")\n"
-"  " UNIX_SOCK_KEY " - UNIX-сокет для подключения (по-умолчанию " DEFAULT_UNIX_SOCK ")\n"
+"  " FILE_STAT_KEY " - наблюдаемый файл (по-умолчанию " DEFAULT_FILE_STAT ");\n"
+"  " UNIX_SOCK_KEY " - UNIX-сокет для подключения (по-умолчанию " DEFAULT_UNIX_SOCK ").\n"
          );
 }
 
@@ -93,8 +119,12 @@ void read_conf( void )
   int   fc;
 
   if( ( cnf = fopen( CONF_FILE, "rt" ) ) == NULL ) {
-    fprintf( stderr, "Нет доступа к конфигурации: " CONF_FILE "\n" );
-    usage();
+    if( daemon_mode ) {
+      syslog( LOG_WARNING, "Нет доступа к конфигурации: " CONF_FILE "\n" );
+    } else {
+      fprintf( stderr, "Нет доступа к конфигурации: " CONF_FILE "\n" );
+      usage();
+    }
   } else {
 
     while( ! feof( cnf ) ) {
@@ -131,81 +161,236 @@ void read_conf( void )
 
   /* если один из параметров не считан, мы не можем продолжать */
   if( file_stat[0] == '\0' ) {
-    sprintf( file_stat, "%s", DEFAULT_FILE_STAT );
-    fprintf( stderr, "Внимание, в конфигурационном файле не указан параметр " FILE_STAT_KEY ".\n"
-                     "Используется по-умолчанию значение: " FILE_STAT_KEY "=" DEFAULT_FILE_STAT ".\n" );
+    snprintf( file_stat, KEYVAL_LEN, "%s", DEFAULT_FILE_STAT );
+    if( daemon_mode ) {
+      fprintf( stderr,  "Внимание, не задан конфигурационный параметр " FILE_STAT_KEY ".\n"
+                        "Используется по-умолчанию значение: " FILE_STAT_KEY "=" DEFAULT_FILE_STAT ".\n" );
+    } else {
+      syslog( LOG_WARNING, "Внимание, не задан конфигурационный параметр " FILE_STAT_KEY ".\n"
+                           "Используется по-умолчанию значение: " FILE_STAT_KEY "=" DEFAULT_FILE_STAT ".\n" );
+    }
   }
 
   if( unix_sock[0] == '\0' ) {
-    sprintf( unix_sock, "%s", DEFAULT_UNIX_SOCK );
-    fprintf( stderr, "Внимание, в конфигурационном файле не указан параметр " UNIX_SOCK_KEY ".\n"
-                     "Используется по-умолчанию значение: " UNIX_SOCK_KEY "=" DEFAULT_UNIX_SOCK ".\n" );
+    snprintf( unix_sock, KEYVAL_LEN, "%s", DEFAULT_UNIX_SOCK );
+    if( daemon_mode ) {
+      fprintf( stderr,  "Внимание, не задан конфигурационный параметр " UNIX_SOCK_KEY ".\n"
+                        "Используется по-умолчанию значение: " UNIX_SOCK_KEY "=" DEFAULT_UNIX_SOCK ".\n" );
+    } else {
+      syslog( LOG_WARNING, "Внимание, не задан конфигурационный параметр " UNIX_SOCK_KEY ".\n"
+                           "Используется по-умолчанию значение: " UNIX_SOCK_KEY "=" DEFAULT_UNIX_SOCK ".\n" );
+    }
   }
 
   return;
 }
 
+/* функция демонизации */
+void daemonize( void )
+{
+  int               i, fd0, fd1, fd2;
+  pid_t             pid;
+  struct rlimit     rl;
+  struct sigaction  sa;
+
+  /* Сброс маски режима создания файла */
+  umask( 0 );
+
+  /* Получение максимально возможного номера дескриптора файла */
+  if( getrlimit(RLIMIT_NOFILE, &rl ) < 0 )
+    perror( "невозможно получить максимальный размер дескриптора" );
+
+  /* Станем лидером нового сеанса, чтобы утратить управлящий терминал вскоре */
+  if( ( pid = fork() ) < 0 )
+    perror( "ошибка вызова функции fork" );
+  else {
+    if( pid != 0 ) { /* родительский процесс */
+      exit( EXIT_SUCCESS );
+    }
+  }
+
+  setsid();
+
+  /* Обеспечить невозможность обретения управляющего терминала в будущем */
+  sa.sa_handler = SIG_IGN;
+  sigemptyset( &sa.sa_mask );
+  sa.sa_flags = 0;
+  if( sigaction( SIGHUP, &sa, NULL ) < 0 )
+    syslog( LOG_CRIT, "Невозможно игнорировать сигнал SIGHUP "
+                      "(pid дочернего процесса будет другим)" );
+
+  if( ( pid = fork()) < 0 )
+    syslog( LOG_CRIT, "Ошибка вызова функции fork" );
+  else {
+    if( pid != 0 ) { /* родительский процесс */
+      exit( EXIT_SUCCESS );
+    }
+  }
+
+  /* Назначение корневого каталога текущим рабочим каталогом,
+     чтобы в последствии можно было отмонтировать файловую систему */
+  if( chdir( "/" ) < 0 )
+    syslog( LOG_CRIT, "Невозможно сделать корневой каталог системы '/' текущим рабочим каталогом" );
+
+  /* Закрыть все открытые файловые дескрипторы */
+  if( rl.rlim_max == RLIM_INFINITY )
+    rl.rlim_max = 1024;
+  for( i = 0 ; i < (int)rl.rlim_max ; i++ )
+    close( i );
+
+  /* Присоединить стандартные файловые
+     дескрипторы 0, 1 и 2 к /dev/null */
+  fd0 = open( "/dev/null", O_RDWR );
+  fd1 = dup( 0 );
+  fd2 = dup( 0 );
+  if( fd0 != 0 || fd1 != 1 || fd2 != 2 )
+    syslog( LOG_CRIT, "ошибочные файловые дескрипторы %d %d %d",
+                      fd0, fd1, fd2 );
+
+}
+
 int main( int argc, char **argv )
 {
+  int                 ret_val = EXIT_SUCCESS;
   struct sockaddr_un  sa_unix;            /* описание адреса UNIX domain socket */
   char                buff[ BUFF_SIZE ];  /* буфер приема данных */
+  int fc;
 
-  flWork = 0;
+  _argv = argv;
 
   struct sigaction sa;
   sa.sa_handler = stop_proc;
   sigemptyset( &sa.sa_mask );
   sa.sa_flags = 0;
 
-  if( sigaction( SIGTERM, &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGABRT, &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGINT,  &sa, NULL ) < 0 )
-    return -1;
-  if( sigaction( SIGQUIT, &sa, NULL ) < 0 )
-    return -1;
+  if( ( sigaction( SIGTERM, &sa, NULL ) < 0 ) ||
+      ( sigaction( SIGABRT, &sa, NULL ) < 0 ) ||
+      ( sigaction( SIGINT,  &sa, NULL ) < 0 ) ||
+      ( sigaction( SIGQUIT, &sa, NULL ) < 0 )
+    )
+  {
+    ret_val = EXIT_FAILURE;
+    goto app_exit;
+  }
 
-
-  int   fc;
 
   for( fc = 1; fc < argc ; fc++ ) {
+
     if( strcmp( argv[ fc ], "-h" ) == 0 ||
         strcmp( argv[ fc ], "--help" ) == 0 ) {
       usage();
-      return EXIT_SUCCESS;
+      goto app_exit;
     }
+
+    if( strcmp( argv[ fc ], "-d" ) == 0 ||
+        strcmp( argv[ fc ], "--daemon" ) == 0 ) {
+      daemon_mode = 1;
+      if( geteuid() != 0 ) {
+        fprintf( stderr, "Попытка запуска в режиме демона не супер-пользователем.\n"
+                         "Убедитесь, что у Вас есть право записи в "
+                          PIDFILE_DIR PIDFILE ".\n"
+                         "В данном режиме сообщения выводятся в файлы /var/log/.. syslog|user.log\n" );
+      }
+    }
+  }
+
+  if( daemon_mode ) {
+    /* Инициализация файла журнала */
+    openlog( argv[ 0 ], LOG_CONS, LOG_DAEMON );
+
+    daemonize( );
+
+    syslog( LOG_INFO, "Процесс запущен" );
+
+    /* создаем каталог для pid-файла */
+    if( mkdir( PIDFILE_DIR, 0755 ) == -1 &&
+        errno != EEXIST ) {
+      /* perror("невозможно создать каталог " PIDFILE_DIR " через mkdir");
+         комментируем perror, т.к. у нас теперь stderr смотрит в /dev/null */
+      syslog( LOG_WARNING, "Невозможно создать каталог " PIDFILE_DIR "! Возможно, у Вас нет прав root" );
+      ret_val = EXIT_FAILURE;
+      goto app_exit;
+    }
+
+    /* если каталог создался или уже был ранее создан,
+       создаем файл ... */
+    pid_f = open( PIDFILE_DIR PIDFILE, O_RDWR | O_CREAT, 0644 );
+    if( pid_f == -1 ) {
+      /*perror( "не удалось создать pid-файл " PIDFILE_DIR PIDFILE ); */
+      syslog( LOG_WARNING, "Не удалось создать pid-файл " PIDFILE_DIR PIDFILE );
+      ret_val = EXIT_FAILURE;
+      goto app_exit;
+    }
+
+    /* если файл создался, делаем "неблокирующую" блокировку */
+    /* иначе дублирующий запуск получит доступ к файлу, 
+       "поправив", удалив его и т.д. */
+    if( flock( pid_f, LOCK_EX | LOCK_NB ) == -1 ) {
+      if( errno == EWOULDBLOCK ) {
+        syslog( LOG_CRIT, "Демон уже запущен, pid-файл: " PIDFILE_DIR PIDFILE " уже заблокирован" );
+      } else {
+        /*perror( "Ошибка блокировки pid-файла" );*/
+        syslog( LOG_WARNING, "Ошибка блокировки pid-файла" );
+      }
+      ret_val = EXIT_FAILURE;
+      close( pid_f ); /* закрываем здесь, а удалять нельзя,
+                         т.к. не нами занят */
+      goto app_exit;
+    }
+
+    if( ftruncate( pid_f, 0 ) == -1 )
+    {
+      /*perror( "Не удалось очистить pid-файл" );*/
+      syslog( LOG_CRIT, "Не удалось очистить pid-файл" );
+      ret_val = EXIT_FAILURE;
+      goto app_exit_cleanup;
+    }
+
+   /* ref to `man pid_t`
+  DESCRIPTION
+         pid_t  is a type used for storing process IDs, process group IDs,
+         and session IDs.  It is a signed integer type.
+                                   ~~~~~~~~~~~~~~~~~~~
+    */
+    if( dprintf( pid_f, "%d\n", getpid() ) < 0 ) {
+      perror( "Ошибка записи в " PIDFILE_DIR PIDFILE );
+      syslog( LOG_WARNING, "Ошибка записи в " PIDFILE_DIR PIDFILE );
+      ret_val = EXIT_FAILURE;
+      goto app_exit_cleanup;
+    }
+    fsync(pid_f);
   }
 
   memset( file_stat, 0, sizeof( file_stat ) );
   memset( unix_sock, 0, sizeof( unix_sock ) );
 
-  fprintf( stdout, "Запуск %s\n"
-                   "Демон мониторинга файла\n"
-                  , argv[0] );
+  if( !daemon_mode )
+    fprintf( stdout, "Запуск %s\n"
+                     "Демон мониторинга файла\n"
+                    , argv[ 0 ] );
 
   read_conf();
 
   idf = socket( AF_UNIX, SOCK_STREAM, 0 );
   if( idf == -1 ) {
     perror( "Создание unix-сокета" );
-    return EXIT_FAILURE;
+    ret_val = EXIT_FAILURE;
+    goto app_exit;
   }
-
 
   memset( &sa_unix, 0, sizeof( sa_unix ) );
   sa_unix.sun_family=AF_UNIX;
   memcpy(  &sa_unix.sun_path , unix_sock, strlen( unix_sock ) );
   if( ( bind( idf, ( struct sockaddr * ) &sa_unix, sizeof( sa_unix ) ) ) == -1 ) {
     perror( "Связывание" );
-    close( idf );
-    return EXIT_FAILURE;
+    ret_val = EXIT_FAILURE;
+    goto app_exit_cleanup;
   }
 
   if( ( listen( idf, 1 ) ) == -1 )    {
     perror( "Слушание" );
-    close( idf );
-    return EXIT_FAILURE;
+    ret_val = EXIT_FAILURE;
+    goto app_exit_cleanup;
   }
 
   flWork = 1;
@@ -219,7 +404,7 @@ int main( int argc, char **argv )
     /* printf("Результат accept=%i\n", iifd ); */
 
     if( iifd > 0 ) {
-      struct stat statbuff;
+      struct stat  statbuff;
 
       memset( buff, 0, sizeof( buff ) );
       if( -1 == stat( file_stat, &statbuff ) )
@@ -239,10 +424,31 @@ int main( int argc, char **argv )
     /* printf( "\n===== ---\n" ); */
   }
 
-  close( idf );
+app_exit_cleanup:
+
+  if( idf != -1 )
+    close( idf );
+  idf = -1;
+
   unlink( unix_sock );
 
-  fprintf(stderr, "Процесс %s остановлен\n", argv[0] );
+  if( pid_f != -1 )
+    close( pid_f );
 
-  return EXIT_SUCCESS;
+  unlink( PIDFILE_DIR PIDFILE );
+
+
+app_exit:
+
+  if( daemon_mode ) {
+    syslog( LOG_INFO, "Процесс %sзавершен\n",
+                      ret_val == EXIT_FAILURE ? "аварийно " : "" );
+
+    closelog();
+  } else {
+    fprintf(stderr, "Процесс %s %sзавершен\n",
+                     argv[0],
+                     ret_val == EXIT_FAILURE ? "аварийно " : "" );
+  }
+  exit( ret_val );
 }
