@@ -26,7 +26,7 @@ int main( int argc, char **argv )
   if( argc < 2 ) {
     fputs( "Укажите входной файл для обработки\n", stderr );
     usage( argv[0] );
-    return (EXIT_FAILURE);
+    goto err_exit;
   }
 
   if( !strcmp(argv[1], "--help") ||
@@ -39,15 +39,14 @@ int main( int argc, char **argv )
   fd = open( argv[1], O_RDONLY );
   if( fd == -1 ) {
     fprintf( stderr, "Не удалось открыть входной файл %s\n", argv[1] );
-    return (EXIT_FAILURE);
+    goto err_exit;
   }
 
   struct stat info;
   if( fstat(fd, &info) == -1)
   {
     perror("fstat");
-    close(fd);
-    return (EXIT_FAILURE);
+    goto err_exit;
   }
 
 /* см. man fstat :
@@ -66,8 +65,7 @@ int main( int argc, char **argv )
   if( (info.st_mode & S_IFMT) == S_IFDIR )
   {
     fprintf( stderr, "is directory\t%s\n", argv[1] );
-    close(fd);
-    return (EXIT_FAILURE);
+    goto err_exit;
   }
 
   size_t file_size = info.st_size;
@@ -106,9 +104,13 @@ int main( int argc, char **argv )
 
     offset += curr_size;
   }
-  close(fd);
+  close(fd); fd = -1;
 
   printf("%08x\t%s\n", crc, argv[1]);
 
   return (EXIT_SUCCESS);
+err_exit:
+  if( fd != -1 )
+    close( fd );
+  return (EXIT_FAILURE);
 }
